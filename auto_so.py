@@ -1,7 +1,14 @@
 import os
 from openpyxl import Workbook, load_workbook
 import pandas as pd
+import shutil
 
+def create_directory(converted_dir = "xlsx"):
+    if not os.path.exists(converted_dir):
+        os.makedirs(converted_dir)
+    else:
+        shutil.rmtree(converted_dir)
+        os.makedirs(converted_dir)
 
 def convert_xls_to_xlsx(input_folder, output_folder):
     """
@@ -66,9 +73,9 @@ def extract_cell(file_path, cell):
 def main():
     try:
         username = str(input("Please input your username: "))
-        desktop_path = f"C:\\Users\\{username}\\Desktop\\"
-        input_folder = f"{desktop_path}ExcelFiles"
-        output_folder = f"{desktop_path}ExcelFiles_Converted"
+        # root_path = f"C:\\Users\\{username}\\Desktop\\"
+        input_folder = "xls"
+        output_folder = "xlsx"
         output_file = "Service Overview.xlsx"
         output_sheet = "raw data"
 
@@ -89,15 +96,18 @@ def main():
             "VESSEL SIZE": None,
             "VESSEL_NAME": None
             }
+        headers_internal = [
+            "PORT",
+            "MICT SERVICE NAME",
+            "ALT SRVC CD"
+            ]
+        
         headers_extract = [cell for cell in cells_to_extract.keys()]
         cells_extract = [cell for cell in cells_to_extract.values()]
-        headers_internal = ["PORT", "MICT SERVICE NAME", "ALT SRVC CD"]
-
-        # headers_list = headers_internal[:1] + headers_extract[:14] + headers_internal[2] + headers_extract[14:]
         headers_list = list(headers_internal[:2]) + list(headers_extract[:12]) + [headers_internal[2]] + list(headers_extract[12:])
-        print(headers_list)
 
         # .xlsx Service files
+        create_directory()
         service_files = convert_xls_to_xlsx(input_folder, output_folder)
         
         # Create Service Overview.xlsx output file and fill with headers
