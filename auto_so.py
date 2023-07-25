@@ -33,7 +33,7 @@ def convert_xls_to_xlsx(input_folder, output_folder):
 
         wb_xlsx = Workbook()
         sheet_xlsx = wb_xlsx.active
-
+        
         for row in df_xls.iterrows():
             sheet_xlsx.append(row[1].tolist())
 
@@ -55,6 +55,8 @@ def extract_cell(file_path, cell):
     Various: The data from the cell extracted.
     """
     try:
+        if cell == None:
+            return None
         workbook = load_workbook(file_path)
         sheet = workbook.active
         return sheet[cell].value
@@ -71,21 +73,42 @@ def main():
         output_sheet = "raw data"
 
         # Field list
-        cells_to_extract = {"SERVICE DESC": "D3", "FIRST VESSEL ON LIST": "C8"}
-        headers_list = [cell for cell in cells_to_extract.values()]
-        
+        cells_to_extract = {
+            "SERVICE NAME": None,
+            "SERVICE DESC": None,
+            "ROUTE": None,
+            "LEAD SL": None,
+            "SAILING FREQ": None,
+            "PARTICIPANTS": None,
+            "VESSEL OPERATOR":None,
+            "# OF VESSELS": None,
+            "# OF VESSELS PER ROW COUNT": None,
+            "WEEKLY CAPACITY":None,
+            "SHIPS USED": None,
+            "PORT ROTATION": None,
+            "VESSEL SIZE": None,
+            "VESSEL_NAME": None
+            }
+        headers_extract = [cell for cell in cells_to_extract.keys()]
+        cells_extract = [cell for cell in cells_to_extract.values()]
+        headers_internal = ["PORT", "MICT SERVICE NAME", "ALT SRVC CD"]
+
+        # headers_list = headers_internal[:1] + headers_extract[:14] + headers_internal[2] + headers_extract[14:]
+        headers_list = list(headers_internal[:2]) + list(headers_extract[:12]) + [headers_internal[2]] + list(headers_extract[12:])
+        print(headers_list)
+
         # .xlsx Service files
         service_files = convert_xls_to_xlsx(input_folder, output_folder)
         
-        # Create output Service Overview file with headers
+        # Create Service Overview.xlsx output file and fill with headers
         output_workbook = Workbook()
         output_workbook.remove(output_workbook.active)
         output_sheet = output_workbook.create_sheet(output_sheet)
-        output_sheet.append([key for key in cells_to_extract.keys()])
+        output_sheet.append(headers_list)
 
         for service_file in service_files:
             file_path = os.path.join(output_folder, service_file)
-            output_sheet.append([extract_cell(file_path, cell) for cell in headers_list])
+            output_sheet.append([extract_cell(file_path, cell) for cell in cells_extract])
 
         output_workbook.save(output_file)
         
