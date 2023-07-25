@@ -72,8 +72,6 @@ def extract_cell(file_path, cell):
 
 def main():
     try:
-        username = str(input("Please input your username: "))
-        # root_path = f"C:\\Users\\{username}\\Desktop\\"
         input_folder = "xls"
         output_folder = "xlsx"
         output_file = "Service Overview.xlsx"
