@@ -3,12 +3,32 @@ from openpyxl import Workbook, load_workbook
 import pandas as pd
 import shutil
 
-def create_directory(converted_dir = "xlsx"):
-    if not os.path.exists(converted_dir):
-        os.makedirs(converted_dir)
+def create_directory(dir_name):
+    """
+    Creates a directory in the same parent directory with a specified name.
+
+    Parameters:
+    dir_name (str): The name of the directory to create. Default is "xlsx" for the converted Excel files.
+    """
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
     else:
-        shutil.rmtree(converted_dir)
-        os.makedirs(converted_dir)
+        shutil.rmtree(dir_name)
+        os.makedirs(dir_name)
+
+def create_sheet(output_workbook, sheet_name):
+    """
+    Creates a sheet in the Excel workbook and populate the header.
+
+    Parameters:
+    outbook_workbook (Workbook): The workbook where the sheet will be created.
+    sheet_name (str): The name of the sheet to be created.
+
+    Returns:
+    Worksheet: Created sheet
+    """
+    output_sheet = output_workbook.create_sheet(sheet_name)
+    return output_sheet
 
 def convert_xls_to_xlsx(input_folder, output_folder):
     """
@@ -55,32 +75,80 @@ def extract_cell(file_path, cell):
     Returns data from a cell in the given file.
 
     Parameters:
-    file_path (str): Path to the .xlsx file
+    file_path (str): Path to the .xlsx input file
     cell (str): The name of the cell to extract.
 
     Returns:
     Various: The data from the cell extracted.
     """
     try:
-        if cell == None:
-            return None
         workbook = load_workbook(file_path)
         sheet = workbook.active
+        if cell == None:
+            return None
         return sheet[cell].value
     except Exception as e:
         print(f"Error: {e}")
+
+def populate_raw_data_sheet(output_file, service_files,
+                            raw_cells_to_extract, input_dir):
+    """
+    Creates and populates the "raw data" sheet with data from the service files.
+    Population of data is per row/vessel entry.
+
+    Parameters:
+    output_file (str): The name of the output file.
+    service_files (list): List of service files; datasource
+    raw_cells_to_extract (dict): List of column headers to extract with cell coordinates where data is located.
+    input_dir (str): The name of the directory containing the input files
+
+
+    """
+    # Create sheet and populate header
+    workbook = load_workbook(output_file)
+    raw_data_sheet = create_sheet(workbook, "raw data")
+    workbook.active = raw_data_sheet
+    workbook.title = "Service Overview"
+    raw_headers_list = list(raw_cells_to_extract.keys())
+    raw_data_sheet.append(raw_headers_list)
+
+    # Iterate through the .xlsx files and extract cell data
+    for service_file in service_files:
+        file_path = os.path.join(input_dir, service_file)
+        row_data = {key: None for key in raw_headers_list}
+
+        # Extract cell data and assign to row_data keys as values
+        for column_header in row_data.keys():
+            # Get the cell coord given the key from raw_cells_to_extract
+            cell = raw_cells_to_extract[column_header]
+            row_data[column_header] = extract_cell(f"{input_dir}\\{service_file}", cell)
+            
+        # # SERVICE DESC
+        # lookup = "SERVICE DESC"
+        # cell_input_location = raw_cells_to_extract[lookup]
+        # cell_value = extract_cell(raw_data_sheet, cell_input_location)
+        # # cell_output_location = 
+
+    # 1. Extract cells
+    # 2. Put into an ordered list with complete entry
+    # 3. Append list into sheet
+    # raw_data_sheet.append([extract_cell(file_path, cell) for cell in raw_cells_extract])
+        raw_data_sheet.append([value for value in row_data.values()])
+
+
+    workbook.save(output_file)
+    return workbook
 
 def main():
     try:
         input_folder = "xls"
         output_folder = "xlsx"
         output_file = "Service Overview.xlsx"
-        output_sheet = "raw data"
 
         # Field list
-        cells_to_extract = {
+        raw_cells_to_extract = {
             "SERVICE NAME": None,
-            "SERVICE DESC": None,
+            "SERVICE DESC": "D3",
             "ROUTE": None,
             "LEAD SL": None,
             "SAILING FREQ": None,
@@ -94,31 +162,31 @@ def main():
             "VESSEL SIZE": None,
             "VESSEL_NAME": None
             }
-        headers_internal = [
+        raw_headers_internal = [
             "PORT",
             "MICT SERVICE NAME",
             "ALT SRVC CD"
             ]
         
-        headers_extract = [cell for cell in cells_to_extract.keys()]
-        cells_extract = [cell for cell in cells_to_extract.values()]
-        headers_list = list(headers_internal[:2]) + list(headers_extract[:12]) + [headers_internal[2]] + list(headers_extract[12:])
+        raw_headers_extract = [cell for cell in raw_cells_to_extract.keys()]
+        raw_cells_extract = [cell for cell in raw_cells_to_extract.values()]
+        raw_headers_list = list(raw_headers_internal[:2]) + list(raw_headers_extract[:12]) + [raw_headers_internal[2]] + list(raw_headers_extract[12:])
 
         # .xlsx Service files
-        create_directory()
+        create_directory("xlsx")
         service_files = convert_xls_to_xlsx(input_folder, output_folder)
         
-        # Create Service Overview.xlsx output file and fill with headers
+        # Create Service Overview.xlsx output file
         output_workbook = Workbook()
-        output_workbook.remove(output_workbook.active)
-        output_sheet = output_workbook.create_sheet(output_sheet)
-        output_sheet.append(headers_list)
-
-        for service_file in service_files:
-            file_path = os.path.join(output_folder, service_file)
-            output_sheet.append([extract_cell(file_path, cell) for cell in cells_extract])
-
         output_workbook.save(output_file)
+
+        # Create and populate "raw data" sheet
+        output_workbook = populate_raw_data_sheet(output_file, service_files,
+                                                  raw_cells_to_extract, output_folder)
+        default_sheet = output_workbook["Sheet"]
+        output_workbook.remove(default_sheet)
+        output_workbook.save(output_file)
+
         
     # Handle exceptions
     except FileNotFoundError as fnf_error:
