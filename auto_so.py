@@ -1,7 +1,5 @@
 import os
 from openpyxl import Workbook, load_workbook
-import pandas as pd
-import shutil
 
 def create_directory(dir_name):
     """
