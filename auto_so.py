@@ -104,9 +104,29 @@ def populate_raw_data_sheet(output_file, service_files,
 
 
     """
+    def get_vessel_name_coordinates_list(file_path):
+        workbook = load_workbook(file_path)
+        sheet = workbook.active
+        start_extraction = False
+        extracted_cells = []
+
+        for row_num, row in enumerate(sheet.iter_rows(min_row=1, min_col=3, max_col=3, values_only=True), start=1):
+            cell_value = row[0]
+            if start_extraction:
+                if cell_value is None:
+                    break
+                extracted_cells.append(f"C{row_num}")
+            elif cell_value == "Vessel name":
+                start_extraction = True
+    
+        print(extracted_cells)
+        return extracted_cells
+
+
     # Create sheet and populate header
     workbook = load_workbook(output_file)
-    raw_data_sheet = create_sheet(workbook, "raw data")
+    sheet_name = "raw data"
+    raw_data_sheet = create_sheet(workbook, sheet_name)
     workbook.active = raw_data_sheet
     workbook.title = "Service Overview"
     raw_headers_list = list(raw_cells_to_extract.keys())
@@ -129,11 +149,16 @@ def populate_raw_data_sheet(output_file, service_files,
         # cell_value = extract_cell(raw_data_sheet, cell_input_location)
         # # cell_output_location = 
 
+        # VESSEL NAME
+        for cell in get_vessel_name_coordinates_list(file_path):
+            row_data["VESSEL NAME"] = extract_cell(file_path, cell)
+            
+
     # 1. Extract cells
     # 2. Put into an ordered list with complete entry
     # 3. Append list into sheet
     # raw_data_sheet.append([extract_cell(file_path, cell) for cell in raw_cells_extract])
-        raw_data_sheet.append([value for value in row_data.values()])
+            raw_data_sheet.append([value for value in row_data.values()])
 
 
     workbook.save(output_file)
@@ -160,7 +185,7 @@ def main():
             "SHIPS USED": None,
             "PORT ROTATION": None,
             "VESSEL SIZE": None,
-            "VESSEL_NAME": None
+            "VESSEL NAME": None
             }
         raw_headers_internal = [
             "PORT",
@@ -183,8 +208,11 @@ def main():
         # Create and populate "raw data" sheet
         output_workbook = populate_raw_data_sheet(output_file, service_files,
                                                   raw_cells_to_extract, output_folder)
+        
+        # Remove the sheet created by default
         default_sheet = output_workbook["Sheet"]
         output_workbook.remove(default_sheet)
+
         output_workbook.save(output_file)
 
         
