@@ -91,8 +91,7 @@ def extract_cell(file_path, cell):
     except Exception as e:
         print(f"Error: {e}")
 
-def populate_raw_data_sheet(output_file, service_files,
-                            raw_cells_to_extract, input_dir):
+def populate_raw_data_sheet(output_file, service_files, input_dir):
     """
     Creates and populates the "raw data" sheet with data from the service files.
     Population of data is per row/vessel entry.
@@ -119,18 +118,40 @@ def populate_raw_data_sheet(output_file, service_files,
                 extracted_cells.append(f"C{row_num}")
             elif cell_value == "Vessel name":
                 start_extraction = True
-    
-        print(extracted_cells)
+
         return extracted_cells
 
-
+    # Field list
+    raw_cells_to_extract = {
+        "SERVICE NAME": None,
+        "SERVICE DESC": "D3",
+        "ROUTE": None,
+        "LEAD SL": None,
+        "SAILING FREQ": None,
+        "PARTICIPANTS": None,
+        "VESSEL OPERATOR":None,
+        "# OF VESSELS": None,
+        "# OF VESSELS PER ROW COUNT": None,
+        "WEEKLY CAPACITY":None,
+        "SHIPS USED": None,
+        "PORT ROTATION": None,
+        "VESSEL SIZE": None,
+        "VESSEL NAME": None
+        }
+    raw_headers_internal = [
+        "PORT",
+        "MICT SERVICE NAME",
+        "ALT SRVC CD"
+        ]
+    
+    raw_headers_extract = [cell for cell in raw_cells_to_extract.keys()]
+    raw_headers_list = list(raw_headers_internal[:2]) + list(raw_headers_extract[:12]) + [raw_headers_internal[2]] + list(raw_headers_extract[12:])
     # Create sheet and populate header
     workbook = load_workbook(output_file)
     sheet_name = "raw data"
     raw_data_sheet = create_sheet(workbook, sheet_name)
     workbook.active = raw_data_sheet
     workbook.title = "Service Overview"
-    raw_headers_list = list(raw_cells_to_extract.keys())
     raw_data_sheet.append(raw_headers_list)
 
     # Iterate through the .xlsx files and extract cell data
@@ -139,27 +160,33 @@ def populate_raw_data_sheet(output_file, service_files,
         row_data = {key: None for key in raw_headers_list}
 
         # Extract cell data and assign to row_data keys as values
-        for column_header in row_data.keys():
             # Get the cell coord given the key from raw_cells_to_extract
-            cell = raw_cells_to_extract[column_header]
-            row_data[column_header] = extract_cell(f"{input_dir}\\{service_file}", cell)
+            # cell = raw_cells_to_extract[column_header]
+            # row_data[column_header] = extract_cell(file_path, cell)
             
-        # # SERVICE DESC
-        # lookup = "SERVICE DESC"
-        # cell_input_location = raw_cells_to_extract[lookup]
-        # cell_value = extract_cell(raw_data_sheet, cell_input_location)
-        # # cell_output_location = 
+        # SERVICE DESC
+        lookup = "SERVICE DESC"
+        cell_input_location = raw_cells_to_extract[lookup]
+        row_data[lookup] = extract_cell(file_path, cell_input_location)
 
         # VESSEL NAME
-        for cell in get_vessel_name_coordinates_list(file_path):
-            row_data["VESSEL NAME"] = extract_cell(file_path, cell)
+        lookup = "VESSEL NAME"
+        vessel_name_coordinates_list = get_vessel_name_coordinates_list(file_path)
+        if not vessel_name_coordinates_list:
+            cell_value = "-"
+            row_data[lookup] = cell_value
+            raw_data_sheet.append([value for value in row_data.values()])
+        else:
+            for cell in get_vessel_name_coordinates_list(file_path):
+                cell_value = extract_cell(file_path, cell)
+                row_data[lookup] = cell_value
             
 
     # 1. Extract cells
     # 2. Put into an ordered list with complete entry
     # 3. Append list into sheet
     # raw_data_sheet.append([extract_cell(file_path, cell) for cell in raw_cells_extract])
-            raw_data_sheet.append([value for value in row_data.values()])
+                raw_data_sheet.append([value for value in row_data.values()])
 
 
     workbook.save(output_file)
@@ -167,53 +194,24 @@ def populate_raw_data_sheet(output_file, service_files,
 
 def main():
     try:
-        input_folder = "xls"
-        output_folder = "xlsx"
+        xls_dir = "xls"
+        xlsx_dir = "xlsx"
         output_file = "Service Overview.xlsx"
 
-        # Field list
-        raw_cells_to_extract = {
-            "SERVICE NAME": None,
-            "SERVICE DESC": "D3",
-            "ROUTE": None,
-            "LEAD SL": None,
-            "SAILING FREQ": None,
-            "PARTICIPANTS": None,
-            "VESSEL OPERATOR":None,
-            "# OF VESSELS": None,
-            "# OF VESSELS PER ROW COUNT": None,
-            "WEEKLY CAPACITY":None,
-            "SHIPS USED": None,
-            "PORT ROTATION": None,
-            "VESSEL SIZE": None,
-            "VESSEL NAME": None
-            }
-        raw_headers_internal = [
-            "PORT",
-            "MICT SERVICE NAME",
-            "ALT SRVC CD"
-            ]
-        
-        raw_headers_extract = [cell for cell in raw_cells_to_extract.keys()]
-        raw_cells_extract = [cell for cell in raw_cells_to_extract.values()]
-        raw_headers_list = list(raw_headers_internal[:2]) + list(raw_headers_extract[:12]) + [raw_headers_internal[2]] + list(raw_headers_extract[12:])
-
-        # .xlsx Service files
+        # Convert downloaded .xls to .xlsx Service files
         create_directory("xlsx")
-        service_files = convert_xls_to_xlsx(input_folder, output_folder)
+        service_files = convert_xls_to_xlsx(xls_dir, xlsx_dir)
         
         # Create Service Overview.xlsx output file
         output_workbook = Workbook()
         output_workbook.save(output_file)
 
         # Create and populate "raw data" sheet
-        output_workbook = populate_raw_data_sheet(output_file, service_files,
-                                                  raw_cells_to_extract, output_folder)
+        output_workbook = populate_raw_data_sheet(output_file, service_files, xlsx_dir)
         
         # Remove the sheet created by default
         default_sheet = output_workbook["Sheet"]
         output_workbook.remove(default_sheet)
-
         output_workbook.save(output_file)
 
         
