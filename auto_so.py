@@ -258,7 +258,6 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
         cell_value = find_cell_value_to_right(file_path, "Sailing frequency")
         row_data[lookup] = cell_value
 
-
         # WEEKLY CAPACITY
         lookup = "WEEKLY CAPACITY"
         cell_value = find_cell_value_to_right(file_path, "Weekly capacity (teu)")
@@ -314,7 +313,6 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
         cell_value = find_cell_value_to_right(file_path, "Weekly capacity (teu)")
         row_data[lookup] = cell_value
 
-
         # VESSEL NAME, VESSEL OPERATOR
         lookup = "VESSEL NAME"
         operator = "VESSEL OPERATOR"
@@ -335,9 +333,6 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
                 row_data[operator] = cell_value
             
                 raw_data_sheet.append([value for value in row_data.values()])
-
-        
-
 
     workbook.save(output_file)
     return workbook
@@ -372,7 +367,5 @@ def main():
     except Exception as e:
         print(f"An error occured: {e}")
 
-
 if __name__ == "__main__":
     main()
-
