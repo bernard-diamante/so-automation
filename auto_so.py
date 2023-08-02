@@ -109,7 +109,7 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
 
 
     """
-    def get_vessel_name_coordinates_list(file_path):
+    def list_vesselnames_cell_references(file_path):
         """
         Given an Excel file, return a list of all 
         cell references of the vessel names.
@@ -170,35 +170,34 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
     for service_file in service_files:
         file_path = os.path.join(input_dir, service_file)
         row_data = {key: None for key in raw_headers_list}
-
-        # Extract cell data and assign to row_data keys as values
-            # Get the cell coord given the key from raw_cells_to_extract
-            # cell = raw_cells_to_extract[column_header]
-            # row_data[column_header] = extract_cell(file_path, cell)
             
         # SERVICE DESC
         lookup = "SERVICE DESC"
-        cell_input_location = raw_cells_to_extract[lookup]
-        row_data[lookup] = extract_cell(file_path, cell_input_location)
+        cell_reference = raw_cells_to_extract[lookup]
+        row_data[lookup] = extract_cell(file_path, cell_reference)
 
-        # VESSEL NAME
+        # VESSEL NAME, VESSEL OPERATOR
         lookup = "VESSEL NAME"
-        vessel_name_coordinates_list = get_vessel_name_coordinates_list(file_path)
+        operator = "VESSEL OPERATOR"
+        vessel_name_coordinates_list = list_vesselnames_cell_references(file_path)
+        # If no vessels listed, default to -
         if not vessel_name_coordinates_list:
             cell_value = "-"
             row_data[lookup] = cell_value
             raw_data_sheet.append([value for value in row_data.values()])
         else:
-            for cell in get_vessel_name_coordinates_list(file_path):
-                cell_value = extract_cell(file_path, cell)
+            # Fill unique fields (VESSEL NAME, VESSEL OPERATOR)
+            for cell_reference in vessel_name_coordinates_list:
+                cell_value = extract_cell(file_path, cell_reference)
                 row_data[lookup] = cell_value
-            
 
-    # 1. Extract cells
-    # 2. Put into an ordered list with complete entry
-    # 3. Append list into sheet
-    # raw_data_sheet.append([extract_cell(file_path, cell) for cell in raw_cells_extract])
+                cell_reference = "K" + cell_reference[1:]
+                cell_value = extract_cell(file_path, cell_reference)
+                row_data[operator] = cell_value
+            
                 raw_data_sheet.append([value for value in row_data.values()])
+
+        
 
 
     workbook.save(output_file)
