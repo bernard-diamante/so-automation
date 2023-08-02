@@ -6,7 +6,7 @@ from openpyxl import Workbook, load_workbook
 
 def create_directory(dir_name):
     """
-    Creates a directory in the same parent directory with a specified name.
+    Creates a directory in the same parent directory with a given name.
 
     Parameters:
     dir_name (str): The name of the directory to create.
@@ -20,7 +20,7 @@ def create_directory(dir_name):
 
 def create_sheet(output_workbook, sheet_name):
     """
-    Creates a sheet in the Excel workbook and populate the header.
+    Creates a sheet in the Excel workbook with a given name
 
     Parameters:
     outbook_workbook (Workbook): The workbook where the sheet will be created.
@@ -35,7 +35,8 @@ def create_sheet(output_workbook, sheet_name):
 def convert_xls_to_xlsx(input_folder, output_folder):
     """
     Converts all .xls files in a directory, outputs
-    .xlsx to another directory, and returns the result.
+    .xlsx to another directory, and returns a list
+    of the output file names.
 
     Parameters:
     input_folder (str): File path of directory containing .xls files.
@@ -74,13 +75,14 @@ def convert_xls_to_xlsx(input_folder, output_folder):
 
     return service_files
 
-def extract_cell(file_path, cell):
+def extract_cell(file_path, cell_reference):
     """
-    Returns data from a cell in the given file.
+    Returns data from a cell in the given file found
+    through the input file path.
 
     Parameters:
-    file_path (str): Path to the .xlsx input file
-    cell (str): The name of the cell to extract.
+    file_path (str): Relative path to the .xlsx input file.
+    cell_reference (str): The location of the cell to extract.
 
     Returns:
     Various: The data from the cell extracted.
@@ -88,26 +90,33 @@ def extract_cell(file_path, cell):
     try:
         workbook = load_workbook(file_path)
         sheet = workbook.active
-        if cell == None:
+        if cell_reference == None:
             return None
-        return sheet[cell].value
+        return sheet[cell_reference].value
     except Exception as e:
         print(f"Error: {e}")
 
 def populate_raw_data_sheet(output_file, service_files, input_dir):
     """
     Creates and populates the "raw data" sheet with data from the service files.
-    Population of data is per row/vessel entry.
+    Population of data is by row/vessel entry.
 
     Parameters:
     output_file (str): The name of the output file.
-    service_files (list): List of service files; datasource
-    raw_cells_to_extract (dict): List of column headers to extract with cell coordinates where data is located.
+    service_files (list): List of service file names; datasource
+    raw_cells_to_extract (dict): Map of column headers to extract with cell references of the data.
     input_dir (str): The name of the directory containing the input files
 
 
     """
     def get_vessel_name_coordinates_list(file_path):
+        """
+        Given an Excel file, return a list of all 
+        cell references of the vessel names.
+
+        Parameters:
+        file_path (str): Relative path to the .xlsx input file.
+        """
         workbook = load_workbook(file_path)
         sheet = workbook.active
         start_extraction = False
