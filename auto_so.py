@@ -98,7 +98,7 @@ def extract_cell(file_path, cell_reference):
 
 def populate_raw_data_sheet(output_file, service_files, input_dir):
     """
-    Creates and populates the "raw data" sheet with data from the service files.
+    Creates and populates the "raw" sheet with data from the service files.
     Population of data is by row/vessel entry.
 
     Parameters:
@@ -109,6 +109,40 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
 
 
     """
+
+    def find_cell_value_to_right(file_path, search_string):
+        """
+        Finds the specified search string and returns the value to the right.
+        """
+        try:
+            workbook = load_workbook(file_path)
+            sheet = workbook.active
+
+            for row in sheet.iter_rows(values_only=True):
+                if row[2] == search_string:  # Column C is index 2 (0-based index)
+                    # Return value from column D (index 3)
+                    return row[3]
+            
+            # If the search_string is not found, return None
+            return None
+        except Exception as e:
+            print(f"Error: {e}")
+            return None
+    
+    def find_cell_value_to_below(file_path, search_string):
+        workbook = load_workbook(file_path)
+        sheet = workbook.active
+
+        for row in sheet.iter_rows(min_row=30, min_col=3):
+            for cell in row:
+                if cell.value == search_string:
+                    row_index = cell.row
+                    column_index = cell.column
+                    value_below = sheet.cell(row=row_index+1, column=column_index).value
+                    return value_below
+
+        return None  # Keyword not found or cell below is empty
+
     def list_vesselnames_cell_references(file_path):
         """
         Given an Excel file, return a list of all 
@@ -160,11 +194,12 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
     raw_headers_list = list(raw_headers_internal[:2]) + list(raw_headers_extract[:12]) + [raw_headers_internal[2]] + list(raw_headers_extract[12:])
     # Create sheet and populate header
     workbook = load_workbook(output_file)
-    sheet_name = "raw data"
+    sheet_name = "raw"
     raw_data_sheet = create_sheet(workbook, sheet_name)
     workbook.active = raw_data_sheet
     workbook.title = "Service Overview"
     raw_data_sheet.append(raw_headers_list)
+    raw_data_sheet.freeze_panes = "A2"
 
     # Iterate through the .xlsx files and extract cell data
     for service_file in service_files:
@@ -174,7 +209,111 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
         # SERVICE DESC
         lookup = "SERVICE DESC"
         cell_reference = raw_cells_to_extract[lookup]
-        row_data[lookup] = extract_cell(file_path, cell_reference)
+        cell_value = extract_cell(file_path, cell_reference)
+        row_data[lookup] = cell_value
+
+        # SERVICE NAME
+        def has_parentheses(s):
+            return '(' in s and ')' in s
+        
+        def has_dash(s):
+            return '-' in s or "–" in s or "—" in s
+        
+        def get_text_in_last_parentheses(text):
+            last_open = text.rfind("(")
+            last_close = text.rfind(")")
+            if last_open != -1 and last_close > last_open:
+                return text[last_open + 1:last_close]
+            else:
+                return ""
+        
+        def get_text_after_last_dash(text):
+            last_dash_idx = 0
+            idx_temp = 0
+            for char in ["-", "–", "—"]:
+                temp = service_desc.rfind(char)
+                if temp > idx_temp:
+                    last_dash_idx = temp
+            extracted_text = service_desc[last_dash_idx+1:].strip()
+            return extracted_text
+
+        # SERVICE NAME
+        lookup = "SERVICE NAME"
+        service_desc = row_data["SERVICE DESC"]
+        if has_parentheses(service_desc):
+            cell_value = get_text_in_last_parentheses(service_desc)
+            if has_dash(cell_value):
+                cell_value = get_text_after_last_dash(cell_value)[:-1]
+        else:
+            cell_value = get_text_after_last_dash(service_desc)
+        row_data[lookup] = cell_value
+        
+        # ROUTE
+        lookup = "ROUTE"
+        cell_value = find_cell_value_to_right(file_path, "Coverage")
+        row_data[lookup] = cell_value
+
+        # SAILING FREQ
+        lookup = "SAILING FREQ"
+        cell_value = find_cell_value_to_right(file_path, "Sailing frequency")
+        row_data[lookup] = cell_value
+
+
+        # WEEKLY CAPACITY
+        lookup = "WEEKLY CAPACITY"
+        cell_value = find_cell_value_to_right(file_path, "Weekly capacity (teu)")
+        row_data[lookup] = cell_value
+
+        # SHIPS USED
+        lookup = "SHIPS USED"
+        cell_value = find_cell_value_to_right(file_path, "Proforma fleet")
+        row_data[lookup] = cell_value
+
+        def extract_vessel_size(input_string):
+            # Split the input_string at the word "from"
+            parts = input_string.split("from", 1)
+
+            # Check if "from" exists in the input_string
+            if len(parts) > 1:
+                # Extract everything after "from" and remove leading/trailing spaces
+                result = parts[1].strip()
+                return result
+            else:
+                # If "from" is not found, return None
+                return None
+            
+        # VESSEL SIZE
+        lookup = "VESSEL SIZE"
+        try:
+            cell_value = extract_vessel_size(row_data["SHIPS USED"])[:-1]
+        except TypeError:
+            cell_value = "-"
+        row_data[lookup] = cell_value
+
+        # # OF VESSELS
+        lookup = "# OF VESSELS"
+        try:
+            cell_value = int(row_data["SHIPS USED"].split()[0])
+        except ValueError   :
+            cell_value = row_data["SHIPS USED"].split()[0]
+
+        row_data[lookup] = cell_value
+
+        # # OF VESSELS PER ROW COUNT
+        lookup = "# OF VESSELS PER ROW COUNT"
+        cell_value = 1
+        row_data[lookup] = cell_value
+
+        # PORT ROTATION
+        lookup = "PORT ROTATION"
+        cell_value = find_cell_value_to_below(file_path, "Port rotation")
+        row_data[lookup] = cell_value
+
+        # WEEKLY CAPACITY
+        lookup = "WEEKLY CAPACITY"
+        cell_value = find_cell_value_to_right(file_path, "Weekly capacity (teu)")
+        row_data[lookup] = cell_value
+
 
         # VESSEL NAME, VESSEL OPERATOR
         lookup = "VESSEL NAME"
@@ -217,7 +356,7 @@ def main():
         output_workbook = Workbook()
         output_workbook.save(output_file)
 
-        # Create and populate "raw data" sheet
+        # Create and populate "raw" sheet
         output_workbook = populate_raw_data_sheet(output_file, service_files, xlsx_dir)
         
         # Remove the sheet created by default
