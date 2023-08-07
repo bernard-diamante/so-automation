@@ -214,10 +214,8 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
 
         return values_set
 
-
     # Load N4 Services into set
     n4_svcs = get_column_values("n4_svcs.xlsx", "A")
-    print(n4_svcs)
 
     def find_port(comment_string):
         comment_string = comment_string.lower()
@@ -261,6 +259,17 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
                 return "MANUAL CHECK"
         elif "MICT" not in port:
             return service_name
+        
+    def strip_lead_sl(service_desc):
+        dashes_list = [" - ", " – ", " — "]
+        for dash in dashes_list:
+            index = service_desc.find(dash)
+            if index != -1:
+                extract = service_desc[:index]
+        delim = " / "
+        if delim in extract:
+            extract = extract.split(delim)[0].strip()
+        return extract
 
     # Iterate through the .xlsx files and extract cell data
     for service_file in service_files:
@@ -331,7 +340,9 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
 
         # LEAD SL
         lookup = "LEAD SL"
-        
+        cell_value = row_data["SERVICE DESC"]
+        lead_sl = strip_lead_sl(cell_value)
+        row_data[lookup] = lead_sl
 
         # SAILING FREQ
         lookup = "SAILING FREQ"
