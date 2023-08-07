@@ -3,6 +3,7 @@ import shutil
 
 import pandas as pd
 from openpyxl import Workbook, load_workbook
+from openpyxl.utils import get_column_letter
 
 def create_directory(dir_name):
     """
@@ -96,6 +97,16 @@ def extract_cell(file_path, cell_reference):
     except Exception as e:
         print(f"Error: {e}")
 
+def auto_size_columns(worksheet):
+    for column_cells in worksheet.columns:
+        max_length = 0
+        for cell in column_cells:
+            if cell.value is not None:
+                max_length = max(max_length, len(str(cell.value)))
+        adjusted_width = (max_length + 2)  # Add a little extra padding
+        column_letter = get_column_letter(cell.column)
+        worksheet.column_dimensions[column_letter].width = adjusted_width
+
 def populate_raw_data_sheet(output_file, service_files, input_dir):
     """
     Creates and populates the "raw" sheet with data from the service files.
@@ -133,7 +144,7 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
         workbook = load_workbook(file_path)
         sheet = workbook.active
 
-        for row in sheet.iter_rows(min_row=30, min_col=3):
+        for row in sheet.iter_rows(min_row=25, min_col=3):
             for cell in row:
                 if cell.value == search_string:
                     row_index = cell.row
@@ -374,7 +385,6 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
                     if participant_type == "Slotter":
                         formatted_participants_list += " / "
                     formatted_participants_list += cleaned_string
-            print(formatted_participants_list)
             return formatted_participants_list
 
         # PARTICIPANTS
@@ -430,6 +440,7 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
         # PORT ROTATION
         lookup = "PORT ROTATION"
         cell_value = find_cell_value_to_below(file_path, "Port rotation")
+        print(f"{cell_value} {row_data['SERVICE NAME']}")
         row_data[lookup] = cell_value
 
         # WEEKLY CAPACITY
@@ -477,6 +488,8 @@ def main():
 
         # Create and populate "raw" sheet
         output_workbook = populate_raw_data_sheet(output_file, service_files, xlsx_dir)
+        sheet = output_workbook.active
+        auto_size_columns(sheet)
         
         # Remove the sheet created by default
         default_sheet = output_workbook["Sheet"]
