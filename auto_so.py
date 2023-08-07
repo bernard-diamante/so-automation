@@ -167,6 +167,7 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
 
         return extracted_cells
 
+    
     # Field list
     raw_cells_to_extract = {
         "SERVICE NAME": None,
@@ -201,11 +202,80 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
     raw_data_sheet.append(raw_headers_list)
     raw_data_sheet.freeze_panes = "A2"
 
+    def get_column_values(file_path, column):
+        workbook = load_workbook(file_path)
+        sheet = workbook.active
+        values_set = set()
+        
+        for cell in sheet[column]:
+            if cell.value is None:
+                break
+            values_set.add(cell.value)
+
+        return values_set
+
+
+    # Load N4 Services into set
+    n4_svcs = get_column_values("n4_svcs.xlsx", "A")
+    print(n4_svcs)
+
+    def find_port(comment_string):
+        comment_string = comment_string.lower()
+        port_mapping = {
+            "north and south": "MICT + ATI",
+            "north": "MICT",
+            "south": "ATI"
+        }
+
+        for search_string, port in port_mapping.items():
+            if search_string in comment_string:
+                return port
+
+        return "domestic"
+        
+    def extract_text_between_phrases(input_string, start_phrase, end_phrase):
+        """
+        Extracts the text between two given phrases in the input string.
+
+        Parameters:
+        input_string (str): The input string to search within.
+        start_phrase (str): The phrase that marks the start of the desired text.
+        end_phrase (str): The phrase that marks the end of the desired text.
+
+        Returns:
+        str: The extracted text between the start and end phrases, or an empty string if no text is found.
+        """
+        start_index = input_string.find(start_phrase) + len(start_phrase)
+        end_index = input_string.find(end_phrase)
+
+        return input_string[start_index:end_index].strip() if start_index != -1 and end_index != -1 else ""
+
+    def get_mict_service_name(n4_svcs):
+        service_name = row_data["SERVICE NAME"]
+        port = row_data["PORT"]
+
+        if "MICT" in port:
+            if service_name in n4_svcs:
+                return service_name
+            else:
+                return "MANUAL CHECK"
+        elif "MICT" not in port:
+            return service_name
+
     # Iterate through the .xlsx files and extract cell data
     for service_file in service_files:
         file_path = os.path.join(input_dir, service_file)
         row_data = {key: None for key in raw_headers_list}
-            
+        
+        # PORT
+        lookup = "PORT"
+        cell_value = find_cell_value_to_below(file_path, "Comments")
+        start_phrase = "Manila called at"
+        end_phrase = "Comments - Service Chronology"
+        sliced_cell_value = extract_text_between_phrases(cell_value, start_phrase, end_phrase)
+        port = find_port(sliced_cell_value)
+        row_data[lookup] = port
+
         # SERVICE DESC
         lookup = "SERVICE DESC"
         cell_reference = raw_cells_to_extract[lookup]
@@ -236,6 +306,7 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
                     last_dash_idx = temp
             extracted_text = service_desc[last_dash_idx+1:].strip()
             return extracted_text
+            
 
         # SERVICE NAME
         lookup = "SERVICE NAME"
@@ -247,11 +318,20 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
         else:
             cell_value = get_text_after_last_dash(service_desc)
         row_data[lookup] = cell_value
-        
+
+        # MICT SERVICE NAME
+        lookup = "MICT SERVICE NAME"
+        cell_value = get_mict_service_name(n4_svcs)
+        row_data[lookup] = cell_value
+
         # ROUTE
         lookup = "ROUTE"
         cell_value = find_cell_value_to_right(file_path, "Coverage")
         row_data[lookup] = cell_value
+
+        # LEAD SL
+        lookup = "LEAD SL"
+        
 
         # SAILING FREQ
         lookup = "SAILING FREQ"
