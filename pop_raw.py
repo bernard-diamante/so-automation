@@ -1,8 +1,8 @@
 import os
 
-from excel_manip import extract_cell
+from excel_manip import extract_cell, create_sheet
 from openpyxl import load_workbook
-from openpyxl.workbook import Workbook, create_sheet
+from openpyxl.workbook import Workbook
 
 def populate_raw_data_sheet(output_file, service_files, input_dir):
     """
