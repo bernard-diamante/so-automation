@@ -349,6 +349,39 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
         cell_value = find_cell_value_to_right(file_path, "Sailing frequency")
         row_data[lookup] = cell_value
 
+        def list_participant_by_type(file_path, column, type):
+            workbook = load_workbook(file_path)
+            sheet = workbook.active
+            cell_values = []
+
+            for cell in sheet[column]:
+                if cell.value != None:
+                    cell_to_the_right = sheet.cell(row=cell.row, column=cell.column + 1)
+                    if cell_to_the_right.value == type:
+                        cell_values.append(cell.value)
+
+            return cell_values
+        
+        
+        def format_participants_list(file_path, column):
+            participant_types = ["Vessel provider", "Slotter"]
+            formatted_participants_list = ""
+            for participant_type in participant_types:
+                participant_list_by_type = list_participant_by_type(file_path, column, participant_type)
+                if participant_list_by_type:
+                    delimited_string = " / ".join(participant_list_by_type)
+                    cleaned_string = f"{participant_type}s: {delimited_string}"
+                    if participant_type == "Slotter":
+                        formatted_participants_list += " / "
+                    formatted_participants_list += cleaned_string
+            print(formatted_participants_list)
+            return formatted_participants_list
+
+        # PARTICIPANTS
+        lookup = "PARTICIPANTS"
+        cell_value = format_participants_list(file_path, "C")
+        row_data[lookup] = cell_value
+
         # WEEKLY CAPACITY
         lookup = "WEEKLY CAPACITY"
         cell_value = find_cell_value_to_right(file_path, "Weekly capacity (teu)")
