@@ -234,6 +234,7 @@ def populate_raw_data_sheet(file_path, service_files, input_dir):
                 cell_value = get_text_after_last_dash(cell_value)[:-1]
         else:
             cell_value = get_text_after_last_dash(service_desc)
+        print(f"{row_data['SERVICE NAME']}")
         row_data[lookup] = cell_value
 
         # MICT SERVICE NAME
@@ -337,7 +338,6 @@ def populate_raw_data_sheet(file_path, service_files, input_dir):
         # PORT ROTATION
         lookup = "PORT ROTATION"
         cell_value = find_cell_value_to_below(file_path, "Port rotation")
-        print(f"{cell_value} {row_data['SERVICE NAME']}")
         row_data[lookup] = cell_value
 
         # WEEKLY CAPACITY
