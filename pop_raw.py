@@ -4,13 +4,13 @@ from excel_manip import extract_cell, create_sheet
 from openpyxl import load_workbook
 from openpyxl.workbook import Workbook
 
-def populate_raw_data_sheet(output_file, service_files, input_dir):
+def populate_raw_data_sheet(file_path, service_files, input_dir):
     """
     Creates and populates the "raw" sheet with data from the service files.
     Population of data is by row/vessel entry.
 
     Parameters:
-    output_file (str): The name of the output file.
+    file_path (str): The path of the output file.
     service_files (list): List of service file names; datasource
     raw_cells_to_extract (dict): Map of column headers to extract with cell references of the data.
     input_dir (str): The name of the directory containing the input files
@@ -102,7 +102,7 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
     raw_headers_extract = [cell for cell in raw_cells_to_extract.keys()]
     raw_headers_list = list(raw_headers_internal[:2]) + list(raw_headers_extract[:12]) + [raw_headers_internal[2]] + list(raw_headers_extract[12:])
     # Create sheet and populate header
-    workbook = load_workbook(output_file)
+    workbook = load_workbook(file_path)
     sheet_name = "raw"
     raw_data_sheet = create_sheet(workbook, sheet_name)
     workbook.active = raw_data_sheet
@@ -366,5 +366,5 @@ def populate_raw_data_sheet(output_file, service_files, input_dir):
             
                 raw_data_sheet.append([value for value in row_data.values()])
 
-    workbook.save(output_file)
+    workbook.save(file_path)
     return workbook
