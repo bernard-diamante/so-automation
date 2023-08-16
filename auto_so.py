@@ -1,9 +1,10 @@
-from excel_manip import create_directory, convert_xls_to_xlsx, auto_size_columns
-from pop_raw import populate_raw_data_sheet
-from openpyxl import Workbook
 import tkinter as tk
 from tkinter import filedialog
 from ctypes import windll
+from openpyxl import Workbook, load_workbook
+
+from excel_manip import create_directory, convert_xls_to_xlsx, auto_size_columns, duplicate_excel_file, set_list_of_pivot_tables_refresh_on_load
+from pop_raw import populate_raw_data_sheet
 
 
 def select_file():
@@ -43,33 +44,32 @@ def create_gui(gui_title):
 
 def main():
     try:
-        windll.shcore.SetProcessDpiAwareness(1)
+        # windll.shcore.SetProcessDpiAwareness(1)
 
         # Initialize the GUI
-        create_gui("Create Service Overview")
-        app.mainloop()
-
+        # create_gui("Create Service Overview")
+        # app.mainloop()
+        
         xls_dir = "xls"
         xlsx_dir = "xlsx"
+        template_file_path = "SO_Template.xlsx"
         output_file_name = "Service Overview.xlsx"
+        output_file_path = output_file_name
 
         # Convert downloaded .xls to .xlsx Service files
         create_directory("xlsx")
         service_files = convert_xls_to_xlsx(xls_dir, xlsx_dir)
         
-        # Create Service Overview.xlsx output file
-        output_workbook = Workbook()
-        output_workbook.save(output_file_name)
-
-        # Create and populate "raw" sheet
-        output_workbook = populate_raw_data_sheet(output_file_path, service_files, xlsx_dir)
-        sheet = output_workbook.active
-        auto_size_columns(sheet)
+        # Duplicate workbook as output file
+        duplicate_excel_file(template_file_path, output_file_path)
         
-        # Remove the sheet created by default
-        default_sheet = output_workbook["Sheet"]
-        output_workbook.remove(default_sheet)
-        output_workbook.save(output_file_name)
+        # Populate "raw" sheet
+        output_workbook = populate_raw_data_sheet(output_file_path, service_files, xlsx_dir)
+        raw_sheet = output_workbook["raw"]
+        auto_size_columns(raw_sheet)
+
+        # Set the refreshOnLoad attribute = True for all pivot tables in the workbook
+        set_list_of_pivot_tables_refresh_on_load(output_file_path)
 
         
     # Handle exceptions

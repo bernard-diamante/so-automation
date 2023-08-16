@@ -4,6 +4,7 @@ import shutil
 import pandas as pd
 from openpyxl import Workbook, load_workbook
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.table import Table
 
 def create_directory(dir_name):
     """
@@ -106,3 +107,27 @@ def auto_size_columns(worksheet):
         adjusted_width = (max_length + 2)  # Add a little extra padding
         column_letter = get_column_letter(cell.column)
         worksheet.column_dimensions[column_letter].width = adjusted_width
+
+def duplicate_excel_file(source_path, destination_path):
+    try:
+        # Copy the source Excel file to the destination with a new name
+        shutil.copy(source_path, destination_path)
+        print(f"File duplicated as: {destination_path}")
+    except Exception as e:
+        print(f"Error: {e}")
+
+def set_list_of_pivot_tables_refresh_on_load(workbook_path):
+    workbook = load_workbook(workbook_path)
+    for sheet in workbook:
+        for pivot in sheet._pivots:
+            pivot.cache.refreshOnLoad = True
+    workbook.save(workbook_path)
+
+def get_cell_reference(row, column):
+    column_letter = get_column_letter(column)
+    return f"{column_letter}{row}"
+
+def get_sheet_dimensions(workbook_path, sheet_name):
+    workbook = load_workbook(workbook_path)
+    sheet = workbook[sheet_name]
+    return (sheet.max_row, sheet.max_column)
